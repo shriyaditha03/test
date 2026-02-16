@@ -25,15 +25,8 @@ const ObservationForm = ({ data, onDataChange, comments, onCommentsChange }: Obs
         value={data.animalQualityScore || 0}
         onChange={val => handleChange('animalQualityScore', val)}
       />
-      <div className="space-y-1.5">
-        <Label className="text-xs">Other</Label>
-        <Input
-          value={data.animalScoreOther || ''}
-          onChange={e => handleChange('animalScoreOther', e.target.value)}
-          placeholder="Any other observations"
-          className="h-11"
-        />
-      </div>
+
+
 
       {/* Sampling Section */}
       <div className="space-y-3">
@@ -51,28 +44,106 @@ const ObservationForm = ({ data, onDataChange, comments, onCommentsChange }: Obs
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 font-medium">Animal Count</td>
                 <td className="py-2 px-1">
-                  <Input type="number" value={data.sample1Count || ''} onChange={e => handleChange('sample1Count', e.target.value)} placeholder="0" className="h-9 text-xs" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={data.sample1Count || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || parseFloat(val) >= 0) {
+                        handleChange('sample1Count', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="h-9 text-xs"
+                  />
                 </td>
                 <td className="py-2 px-1">
-                  <Input type="number" value={data.sample2Count || ''} onChange={e => handleChange('sample2Count', e.target.value)} placeholder="0" className="h-9 text-xs" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={data.sample2Count || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || parseFloat(val) >= 0) {
+                        handleChange('sample2Count', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="h-9 text-xs"
+                  />
                 </td>
               </tr>
               <tr className="border-b border-border/50">
                 <td className="py-2 pr-2 font-medium">Weight</td>
                 <td className="py-2 px-1">
-                  <Input type="number" value={data.sample1Weight || ''} onChange={e => handleChange('sample1Weight', e.target.value)} placeholder="0" className="h-9 text-xs" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={data.sample1Weight || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || parseFloat(val) >= 0) {
+                        handleChange('sample1Weight', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="h-9 text-xs"
+                  />
                 </td>
                 <td className="py-2 px-1">
-                  <Input type="number" value={data.sample2Weight || ''} onChange={e => handleChange('sample2Weight', e.target.value)} placeholder="0" className="h-9 text-xs" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={data.sample2Weight || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || parseFloat(val) >= 0) {
+                        handleChange('sample2Weight', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="h-9 text-xs"
+                  />
                 </td>
               </tr>
               <tr>
-                <td className="py-2 pr-2 font-medium">Avg Wt</td>
+                <td className="py-2 pr-2 font-medium">Avg Wt *</td>
                 <td className="py-2 px-1">
-                  <Input type="number" value={data.sample1AvgWt || ''} onChange={e => handleChange('sample1AvgWt', e.target.value)} placeholder="0" className="h-9 text-xs" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={data.sample1AvgWt || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || parseFloat(val) >= 0) {
+                        handleChange('sample1AvgWt', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="h-9 text-xs"
+                  />
                 </td>
                 <td className="py-2 px-1">
-                  <Input type="number" value={data.sample2AvgWt || ''} onChange={e => handleChange('sample2AvgWt', e.target.value)} placeholder="0" className="h-9 text-xs" />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={data.sample2AvgWt || ''}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === '' || parseFloat(val) >= 0) {
+                        handleChange('sample2AvgWt', val);
+                      }
+                    }}
+                    placeholder="0"
+                    className="h-9 text-xs"
+                  />
                 </td>
               </tr>
             </tbody>
@@ -80,40 +151,111 @@ const ObservationForm = ({ data, onDataChange, comments, onCommentsChange }: Obs
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-xs">Number of Molts</Label>
-        <Input type="number" value={data.numberOfMolts || ''} onChange={e => handleChange('numberOfMolts', e.target.value)} placeholder="0" className="h-11" />
-      </div>
+
 
       <div className="space-y-1.5">
         <Label className="text-xs">Number of Molts Collected</Label>
         <p className="text-[10px] text-muted-foreground -mt-1">To help us calculate Molting Cycle</p>
-        <Input type="number" value={data.moltsCollected || ''} onChange={e => handleChange('moltsCollected', e.target.value)} placeholder="0" className="h-11" />
+        <Input
+          type="number"
+          min="0"
+          value={data.moltsCollected || ''}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseInt(val) >= 0) {
+              handleChange('moltsCollected', val);
+            }
+          }}
+          placeholder="0"
+          className="h-11"
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label className="text-xs">Number of Dead Animals (Mortality)</Label>
-        <Input type="number" value={data.deadAnimals || ''} onChange={e => handleChange('deadAnimals', e.target.value)} placeholder="0" className="h-11" />
+        <Input
+          type="number"
+          min="0"
+          value={data.deadAnimals || ''}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseInt(val) >= 0) {
+              handleChange('deadAnimals', val);
+            }
+          }}
+          placeholder="0"
+          className="h-11"
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label className="text-xs">Number of Nauplii Stocked in Million</Label>
-        <Input type="number" value={data.naupliiStocked || ''} onChange={e => handleChange('naupliiStocked', e.target.value)} placeholder="0" className="h-11" />
+        <Input
+          type="number"
+          min="0"
+          step="any"
+          value={data.naupliiStocked || ''}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseFloat(val) >= 0) {
+              handleChange('naupliiStocked', val);
+            }
+          }}
+          placeholder="0"
+          className="h-11"
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label className="text-xs">Present Population in the Tank *</Label>
-        <Input type="number" value={data.presentPopulation || ''} onChange={e => handleChange('presentPopulation', e.target.value)} placeholder="0" className="h-11" />
+        <Input
+          type="number"
+          min="0"
+          value={data.presentPopulation || ''}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseInt(val) >= 0) {
+              handleChange('presentPopulation', val);
+            }
+          }}
+          placeholder="0"
+          className="h-11"
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label className="text-xs">Tank Stocking Number (Population)</Label>
-        <Input type="number" value={data.tankStockingNumber || ''} onChange={e => handleChange('tankStockingNumber', e.target.value)} placeholder="0" className="h-11" />
+        <Input
+          type="number"
+          min="0"
+          value={data.tankStockingNumber || ''}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseInt(val) >= 0) {
+              handleChange('tankStockingNumber', val);
+            }
+          }}
+          placeholder="0"
+          className="h-11"
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label className="text-xs">Number of Nauplii Stocked in Million</Label>
-        <Input type="number" value={data.naupliiStockedMillion || ''} onChange={e => handleChange('naupliiStockedMillion', e.target.value)} placeholder="0" className="h-11" />
+        <Input
+          type="number"
+          min="0"
+          step="any"
+          value={data.naupliiStockedMillion || ''}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseFloat(val) >= 0) {
+              handleChange('naupliiStockedMillion', val);
+            }
+          }}
+          placeholder="0"
+          className="h-11"
+        />
       </div>
 
       <RatingScale
@@ -123,10 +265,8 @@ const ObservationForm = ({ data, onDataChange, comments, onCommentsChange }: Obs
         onChange={val => handleChange('waterQualityScore', val)}
       />
 
-      <div className="space-y-1.5">
-        <Label className="text-xs">Other</Label>
-        <Input value={data.waterScoreOther || ''} onChange={e => handleChange('waterScoreOther', e.target.value)} placeholder="Any other observations" className="h-11" />
-      </div>
+
+
 
       <div className="space-y-1.5">
         <Label className="text-xs">Comments</Label>

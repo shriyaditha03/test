@@ -40,22 +40,35 @@ const StockingForm = ({ data, onDataChange, comments, onCommentsChange }: Stocki
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs">Tank Stocking Number (Population)</Label>
+        <Label className="text-xs">Tank Stocking Number (Population) *</Label>
         <Input
           type="number"
+          min="0"
           value={data.tankStockingNumber || ''}
-          onChange={e => handleChange('tankStockingNumber', e.target.value)}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseFloat(val) >= 0) {
+              handleChange('tankStockingNumber', val);
+            }
+          }}
           placeholder="0"
           className="h-11"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs">Number of Nauplii Stocked in Million</Label>
+        <Label className="text-xs">Number of Nauplii Stocked in Million *</Label>
         <Input
           type="number"
+          min="0"
+          step="any"
           value={data.naupliiStocked || ''}
-          onChange={e => handleChange('naupliiStocked', e.target.value)}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '' || parseFloat(val) >= 0) {
+              handleChange('naupliiStocked', val);
+            }
+          }}
           placeholder="0"
           className="h-11"
         />
@@ -68,15 +81,7 @@ const StockingForm = ({ data, onDataChange, comments, onCommentsChange }: Stocki
         onChange={val => handleChange('animalConditionScore', val)}
       />
 
-      <div className="space-y-1.5">
-        <Label className="text-xs">Other</Label>
-        <Input
-          value={data.animalScoreOther || ''}
-          onChange={e => handleChange('animalScoreOther', e.target.value)}
-          placeholder="Any other observations"
-          className="h-11"
-        />
-      </div>
+
 
       <RatingScale
         label="Water Quality Score"
@@ -85,15 +90,7 @@ const StockingForm = ({ data, onDataChange, comments, onCommentsChange }: Stocki
         onChange={val => handleChange('waterQualityScore', val)}
       />
 
-      <div className="space-y-1.5">
-        <Label className="text-xs">Other</Label>
-        <Input
-          value={data.waterScoreOther || ''}
-          onChange={e => handleChange('waterScoreOther', e.target.value)}
-          placeholder="Any other observations"
-          className="h-11"
-        />
-      </div>
+
 
       <div className="space-y-1.5">
         <Label className="text-xs">Comments</Label>

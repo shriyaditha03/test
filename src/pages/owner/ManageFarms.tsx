@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Warehouse, Layers, Cylinder, Plus, MoreVertical, Pencil, Trash2, Settings } from 'lucide-react';
+import { ArrowLeft, Warehouse, Layers, Cylinder, Plus, MoreVertical, Pencil, Trash2, Settings, Utensils, Beaker, Waves } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
     DropdownMenu,
@@ -40,6 +40,21 @@ interface Tank {
     volume_litres: number;
 }
 
+interface TankActivity {
+    feed?: {
+        qty: number;
+        unit: string;
+        time: string;
+    };
+    water?: {
+        ph: number;
+        salinity: number;
+        do: number;
+        temp: number;
+        time: string;
+    };
+}
+
 interface Section {
     id: string;
     farm_id: string;
@@ -60,6 +75,7 @@ const ManageFarms = () => {
     const [farms, setFarms] = useState<Farm[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
+    const [tankActivities, setTankActivities] = useState<Record<string, TankActivity>>({});
 
     // Edit State
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -128,6 +144,45 @@ const ManageFarms = () => {
             });
 
             setFarms(fullFarms);
+
+            // 5. Fetch Latest Activities for all tanks (Optimization: fetch all recent and map)
+            const { data: activityData } = await supabase
+                .from('activity_logs')
+                .select('tank_id, activity_type, data, created_at')
+                .in('activity_type', ['Feed', 'Water Quality'])
+                .order('created_at', { ascending: false });
+
+            if (activityData) {
+                const activitiesMap: Record<string, TankActivity> = {};
+
+                // Process newest first to get "latest"
+                activityData.forEach(log => {
+                    if (!log.tank_id) return;
+
+                    if (!activitiesMap[log.tank_id]) {
+                        activitiesMap[log.tank_id] = {};
+                    }
+
+                    const tankAct = activitiesMap[log.tank_id];
+
+                    if (log.activity_type === 'Feed' && !tankAct.feed) {
+                        tankAct.feed = {
+                            qty: log.data.feedQty,
+                            unit: log.data.feedUnit,
+                            time: log.created_at
+                        };
+                    } else if (log.activity_type === 'Water Quality' && !tankAct.water) {
+                        tankAct.water = {
+                            ph: log.data.waterData?.pH,
+                            salinity: log.data.waterData?.Salinity,
+                            do: log.data.waterData?.['Dissolved Oxygen'],
+                            temp: log.data.waterData?.Temperature,
+                            time: log.created_at
+                        };
+                    }
+                });
+                setTankActivities(activitiesMap);
+            }
         } catch (error) {
             console.error('Error fetching farms:', error);
         } finally {
@@ -162,6 +217,16 @@ const ManageFarms = () => {
 
         try {
             setActionLoading(true);
+
+            // 1. Delete associated Activity Logs (Manually handle cascade delete)
+            const { error: logsError } = await supabase
+                .from('activity_logs')
+                .delete()
+                .eq('farm_id', deletingFarm.id);
+
+            if (logsError) throw logsError;
+
+            // 2. Delete the Farm (Sections and Tanks will cascade automatically via DB constraints)
             const { error } = await supabase
                 .from('farms')
                 .delete()
@@ -267,13 +332,55 @@ const ManageFarms = () => {
                                                 <AccordionContent>
                                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 pb-4">
                                                         {section.tanks.map(tank => (
-                                                            <div key={tank.id} className="bg-secondary/30 p-3 rounded-xl flex items-center gap-3">
-                                                                <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-700">
-                                                                    <Cylinder className="w-4 h-4" />
+                                                            <div key={tank.id} className="bg-secondary/30 p-3 rounded-xl flex flex-col gap-3 hover:bg-secondary/50 transition-colors">
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-700 shrink-0">
+                                                                        <Cylinder className="w-4 h-4" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="font-bold text-sm text-foreground">{tank.name}</p>
+                                                                        <p className="text-[10px] text-muted-foreground uppercase opacity-80">{tank.type} • {tank.volume_litres?.toLocaleString()}L</p>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <p className="font-medium text-sm">{tank.name}</p>
-                                                                    <p className="text-xs text-muted-foreground">{tank.type} • {tank.volume_litres?.toLocaleString()}L</p>
+
+                                                                {/* Tank Conditions */}
+                                                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                                                    <div className="bg-background/50 rounded-lg p-2 flex flex-col justify-center border border-muted/50">
+                                                                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium uppercase mb-1">
+                                                                            <Waves className="w-3 h-3 text-cyan-500" /> Water
+                                                                        </div>
+                                                                        {tankActivities[tank.id]?.water ? (
+                                                                            <div className="space-y-0.5">
+                                                                                <div className="flex justify-between text-xs">
+                                                                                    <span className="text-muted-foreground">pH</span>
+                                                                                    <span className="font-bold">{tankActivities[tank.id].water!.ph || '-'}</span>
+                                                                                </div>
+                                                                                <div className="flex justify-between text-xs">
+                                                                                    <span className="text-muted-foreground">Sal</span>
+                                                                                    <span className="font-bold">{tankActivities[tank.id].water!.salinity || '-'}</span>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <span className="text-[10px] italic text-muted-foreground/60">No data</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="bg-background/50 rounded-lg p-2 flex flex-col justify-center border border-muted/50">
+                                                                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium uppercase mb-1">
+                                                                            <Utensils className="w-3 h-3 text-orange-500" /> Feeding
+                                                                        </div>
+                                                                        {tankActivities[tank.id]?.feed ? (
+                                                                            <div className="space-y-0.5">
+                                                                                <span className="text-xs font-bold block">
+                                                                                    {tankActivities[tank.id].feed!.qty} {tankActivities[tank.id].feed!.unit}
+                                                                                </span>
+                                                                                <span className="text-[9px] text-muted-foreground">
+                                                                                    {new Date(tankActivities[tank.id].feed!.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                                </span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <span className="text-[10px] italic text-muted-foreground/60">No data</span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         ))}

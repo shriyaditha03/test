@@ -11,9 +11,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
     User, LogOut, PlusCircle, Warehouse, Users,
-    Utensils, Beaker, Eye, Search, Layers, UserPlus, Waves
+    Utensils, Beaker, Eye, Search, Layers, UserPlus, Waves, FileText
 } from 'lucide-react';
 import logo from '@/assets/aqua-nexus-logo.png';
+
+import { formatDate } from '@/lib/date-utils';
+import { Loader2 } from 'lucide-react';
 
 const OwnerDashboard = () => {
     const { user, logout } = useAuth();
@@ -30,9 +33,21 @@ const OwnerDashboard = () => {
         { name: 'Observation', icon: Eye, route: '/owner/reports/observation', color: 'bg-purple-100 text-purple-600' },
     ];
 
+
+
     const handleLogout = async () => {
         await logout();
         navigate('/login');
+    };
+
+    const getActivityIcon = (type: string) => {
+        const act = activities.find(a => a.name === type);
+        return act ? act.icon : FileText;
+    };
+
+    const getActivityColor = (type: string) => {
+        const act = activities.find(a => a.name === type);
+        return act ? act.color : 'bg-gray-100 text-gray-600';
     };
 
     return (
@@ -61,6 +76,9 @@ const OwnerDashboard = () => {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate('/owner/manage-users')}>
                                 <Users className="mr-2 h-4 w-4" /> Manage Users
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => navigate('/owner/consolidated-reports')}>
+                                <FileText className="mr-2 h-4 w-4" /> Consolidated Reports
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate('/owner/profile')}>
                                 <User className="mr-2 h-4 w-4" /> Personal Info
@@ -101,6 +119,23 @@ const OwnerDashboard = () => {
                     ))}
 
 
+                </div>
+            </div>
+
+
+
+            {/* Quick Actions Footer */}
+            <div className="px-4 mt-10">
+                <h3 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-4">Quick Management</h3>
+                <div className="grid grid-cols-2 gap-3">
+                    <Button variant="ghost" className="h-20 flex flex-col bg-blue-50/50 hover:bg-blue-50 border border-blue-100/50 rounded-2xl text-blue-700 gap-2" onClick={() => navigate('/owner/add-user')}>
+                        <UserPlus className="w-6 h-6" />
+                        <span className="text-[10px] font-bold">Add Staff</span>
+                    </Button>
+                    <Button variant="ghost" className="h-20 flex flex-col bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-100/50 rounded-2xl text-emerald-700 gap-2" onClick={() => navigate('/owner/create-farm')}>
+                        <PlusCircle className="w-6 h-6" />
+                        <span className="text-[10px] font-bold">New Farm</span>
+                    </Button>
                 </div>
             </div>
         </div>

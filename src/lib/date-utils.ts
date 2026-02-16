@@ -1,50 +1,57 @@
-import { format } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
 /**
- * IST is UTC + 5:30
+ * Gets the current date/time in the user's local timezone.
  */
-const IST_OFFSET_MINUTES = 330;
-
-/**
- * Gets the current date/time adjusted to IST, regardless of the browser's local timezone.
- */
-export const getNowIST = (): Date => {
-    const now = new Date();
-    // We calculate the UTC time, then add 5:30 hours
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    return new Date(utc + (IST_OFFSET_MINUTES * 60000));
+export const getNowLocal = (): Date => {
+    return new Date();
 };
 
 /**
- * Converts any date UTC/Local to an IST Date object for formatting/comparison.
+ * Converts any date UTC/Local to a Date object for formatting/comparison in local time.
  */
-export const toIST = (date: Date | string | number): Date => {
+export const toLocal = (date: Date | string | number): Date => {
     const d = new Date(date);
-    if (isNaN(d.getTime())) return new Date();
-
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    return new Date(utc + (IST_OFFSET_MINUTES * 60000));
+    return isNaN(d.getTime()) ? new Date() : d;
 };
 
 /**
- * Formats a date in IST with Indian standard dd-MM-yyyy.
+ * Formats a date using local timezone.
  */
-export const formatIST = (date: Date | string | number, pattern: string = 'dd-MM-yyyy'): string => {
-    return format(toIST(date), pattern);
+export const formatDate = (date: Date | string | number, pattern: string = 'dd-MM-yyyy'): string => {
+    return format(toLocal(date), pattern);
 };
 
 /**
- * Gets today's date string in IST (yyyy-MM-dd) for database/input filtering.
+ * Gets today's date string in local time (yyyy-MM-dd) for database/input filtering.
  */
-export const getTodayISTStr = (): string => {
-    return format(getNowIST(), 'yyyy-MM-dd');
+export const getTodayStr = (): string => {
+    return format(getNowLocal(), 'yyyy-MM-dd');
 };
 
 /**
- * Checks if a given timestamp falls on the "Today" according to IST.
+ * Checks if a given timestamp falls on "Today" in local time.
  */
-export const isTodayIST = (timestamp: string | Date): boolean => {
-    const today = getTodayISTStr();
-    const target = format(toIST(timestamp), 'yyyy-MM-dd');
+export const isTodayLocal = (timestamp: string | Date): boolean => {
+    const today = getTodayStr();
+    const target = format(toLocal(timestamp), 'yyyy-MM-dd');
     return today === target;
+};
+
+/**
+ * Converts local date strings (yyyy-MM-dd) to UTC ISO strings representing 
+ * the start and end of those days in the user's local timezone.
+ */
+export const getDateRangeUTC = (fromDate: string, toDate: string) => {
+    const [fy, fm, fd] = fromDate.split('-').map(Number);
+    const [ty, tm, td] = toDate.split('-').map(Number);
+
+    // Create dates in local time
+    const start = new Date(fy, fm - 1, fd, 0, 0, 0, 0);
+    const end = new Date(ty, tm - 1, td, 23, 59, 59, 999);
+
+    return {
+        startDate: start.toISOString(),
+        endDate: end.toISOString()
+    };
 };

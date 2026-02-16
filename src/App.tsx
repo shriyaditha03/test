@@ -21,6 +21,7 @@ import ManageUsers from "./pages/owner/ManageUsers";
 import OwnerProfile from "./pages/owner/OwnerProfile";
 import ManageFarms from "./pages/owner/ManageFarms";
 import OwnerActivityLogs from "./pages/owner/OwnerActivityLogs";
+import OwnerConsolidatedReports from "./pages/owner/OwnerConsolidatedReports";
 
 // New User Pages
 import UserDashboard from "./pages/user/UserDashboard";
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/owner/profile" element={<OwnerRoute><OwnerProfile /></OwnerRoute>} />
             <Route path="/owner/farms" element={<OwnerRoute><ManageFarms /></OwnerRoute>} />
             <Route path="/owner/reports/:type" element={<OwnerRoute><OwnerActivityLogs /></OwnerRoute>} />
+            <Route path="/owner/consolidated-reports" element={<OwnerRoute><OwnerConsolidatedReports /></OwnerRoute>} />
             <Route path="/owner/activity/:type" element={<OwnerRoute><RecordActivity /></OwnerRoute>} />
 
             {/* USER PORTAL */}

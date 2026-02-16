@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, FileText, Loader2, Utensils, Beaker, Waves, Search, Layers, Eye, Calendar, Pencil } from 'lucide-react';
 import { useActivities } from '@/hooks/useActivities';
-import { formatIST, isTodayIST } from '@/lib/date-utils';
+import { formatDate, isTodayLocal, getNowLocal } from '@/lib/date-utils';
 
 const iconMap: Record<string, any> = {
     'Feed': Utensils,
@@ -27,11 +27,16 @@ const UserDailyReport = () => {
     const navigate = useNavigate();
     const { activities, loading, fetchActivities } = useActivities();
 
+    const [now, setNow] = useState(getNowLocal());
+
     useEffect(() => {
         fetchActivities();
+        // Live clock update
+        const timer = setInterval(() => setNow(getNowLocal()), 10000);
+        return () => clearInterval(timer);
     }, [fetchActivities]);
 
-    const todayActivities = activities.filter(a => isTodayIST(a.created_at));
+    const todayActivities = activities.filter(a => isTodayLocal(a.created_at));
 
     return (
         <div className="min-h-screen bg-background">
@@ -52,7 +57,7 @@ const UserDailyReport = () => {
                         <div>
                             <h1 className="text-2xl font-bold">Daily Report</h1>
                             <p className="opacity-80 flex items-center gap-1 text-sm">
-                                <Calendar className="w-3 h-3" /> {formatIST(new Date(), 'eeee, dd-MM-yyyy')}
+                                <Calendar className="w-3 h-3" /> {formatDate(now, 'eeee, dd-MM-yyyy')}
                             </p>
                         </div>
                     </div>
@@ -90,7 +95,7 @@ const UserDailyReport = () => {
                                         <div className="flex items-center justify-between gap-2 mb-1">
                                             <h3 className="font-bold text-foreground truncate">{act.activity_type}</h3>
                                             <span className="text-xs text-muted-foreground font-medium whitespace-nowrap">
-                                                {formatIST(new Date(act.created_at), 'hh:mm a')}
+                                                {formatDate(new Date(act.created_at), 'hh:mm a')}
                                             </span>
                                         </div>
                                         <p className="text-sm font-semibold text-primary mb-1">

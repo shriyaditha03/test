@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, ArrowLeft, Calculator, Layers, Trash2, Plus, ArrowRight, Check } from 'lucide-react';
+import { Loader2, ArrowLeft, Layers, Plus, ArrowRight, Check } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface TankConfig {
@@ -27,6 +27,37 @@ interface SectionConfig {
     tanks: TankConfig[];
 }
 
+const TankCountInput = ({ count, onChange }: { count: number, onChange: (val: number) => void }) => {
+    const [val, setVal] = useState<string | number>(count);
+
+    useEffect(() => {
+        setVal(count);
+    }, [count]);
+
+    return (
+        <Input
+            type="number"
+            min="0"
+            max="100"
+            value={val}
+            onChange={(e) => {
+                const v = e.target.value;
+                setVal(v);
+                const num = parseInt(v);
+                if (!isNaN(num) && num >= 0) {
+                    onChange(num);
+                }
+            }}
+            onBlur={() => {
+                if (val === '' || isNaN(Number(val))) {
+                    setVal(count);
+                }
+            }}
+            className="w-14 h-7 text-center font-bold text-xs bg-transparent border-none focus-visible:ring-0"
+        />
+    );
+};
+
 const CreateFarm = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -34,25 +65,18 @@ const CreateFarm = () => {
     const [step, setStep] = useState(1);
 
     const [farmName, setFarmName] = useState('');
-    const [sectionCount, setSectionCount] = useState(1);
-    const [tanksPerSection, setTanksPerSection] = useState(1);
+    const [sectionCount, setSectionCount] = useState<number | string>(1);
     const [sections, setSections] = useState<SectionConfig[]>([]);
 
     const calculateTank = (tank: TankConfig): { volume: number, area: number } => {
         let volume = 0;
         let area = 0;
         const h = Number(tank.height) || 0;
+        const l = Number(tank.length) || 0;
+        const w = Number(tank.width) || 0;
 
-        if (tank.shape === 'RECTANGLE') {
-            const l = Number(tank.length) || 0;
-            const w = Number(tank.width) || 0;
-            area = l * w;
-            volume = area * h * 1000;
-        } else {
-            const r = Number(tank.radius) || 0;
-            area = Math.PI * Math.pow(r, 2);
-            volume = area * h * 1000;
-        }
+        area = l * w;
+        volume = area * h * 1000;
 
         return {
             volume: Math.round(volume * 100) / 100,
@@ -66,23 +90,74 @@ const CreateFarm = () => {
             return;
         }
 
-        const newSections: SectionConfig[] = Array.from({ length: sectionCount }).map((_, sIdx) => ({
+        // Initialize sections with 0 tanks by default as requested
+        const count = Number(sectionCount) || 1;
+        const newSections: SectionConfig[] = Array.from({ length: count }).map((_, sIdx) => ({
             name: `Section ${sIdx + 1}`,
-            tanks: Array.from({ length: tanksPerSection }).map((_, tIdx) => ({
-                name: `Tank ${tIdx + 1}`,
-                type: 'FRP',
-                shape: 'CIRCLE',
+            tanks: []
+        }));
+
+        setSections(newSections);
+        setStep(2);
+    };
+
+    const addTank = (sIdx: number) => {
+        setSections(prev => {
+            const newSections = [...prev];
+            const currentTanks = newSections[sIdx].tanks;
+            const newTank: TankConfig = {
+                name: `Tank ${currentTanks.length + 1}`,
+                type: currentTanks[currentTanks.length - 1]?.type || 'FRP',
+                shape: 'RECTANGLE',
                 length: 0,
                 width: 0,
                 height: 0,
                 radius: 0,
                 volume: 0,
                 area: 0
-            }))
-        }));
+            };
+            newSections[sIdx].tanks = [...currentTanks, newTank];
+            return newSections;
+        });
+        toast.success(`Added new tank to ${sections[sIdx].name}`);
+    };
 
-        setSections(newSections);
-        setStep(2);
+    const addSection = () => {
+        const newSection: SectionConfig = {
+            name: `Section ${sections.length + 1}`,
+            tanks: []
+        };
+        setSections(prev => [...prev, newSection]);
+        toast.success("Added new section");
+    };
+
+    const updateTankCount = (sIdx: number, count: number) => {
+        setSections(prev => {
+            const newSections = [...prev];
+            const currentTanks = newSections[sIdx].tanks;
+
+            if (count > currentTanks.length) {
+                // Add tanks
+                const additionalCount = count - currentTanks.length;
+                const additionalTanks = Array.from({ length: additionalCount }).map((_, i) => ({
+                    name: `Tank ${currentTanks.length + i + 1}`,
+                    type: (currentTanks[0]?.type || 'FRP') as 'FRP' | 'CONCRETE',
+                    shape: 'RECTANGLE' as 'CIRCLE' | 'RECTANGLE',
+                    length: 0,
+                    width: 0,
+                    height: 0,
+                    radius: 0,
+                    volume: 0,
+                    area: 0
+                }));
+                newSections[sIdx].tanks = [...currentTanks, ...additionalTanks];
+            } else if (count < currentTanks.length) {
+                // Remove tanks
+                newSections[sIdx].tanks = currentTanks.slice(0, Math.max(0, count));
+            }
+
+            return newSections;
+        });
     };
 
     const updateTank = (sIdx: number, tIdx: number, updates: Partial<TankConfig>) => {
@@ -100,6 +175,13 @@ const CreateFarm = () => {
 
     const handleSubmit = async () => {
         if (!user?.hatchery_id) return;
+
+        // Validation: Ensure at least one tank exists total
+        const totalTanks = sections.reduce((acc, s) => acc + s.tanks.length, 0);
+        if (totalTanks === 0) {
+            toast.error("Please add at least one tank to your farm");
+            return;
+        }
 
         try {
             setLoading(true);
@@ -141,8 +223,10 @@ const CreateFarm = () => {
                 });
             });
 
-            const { error: tankError } = await supabase.from('tanks').insert(tanksToCreate);
-            if (tankError) throw tankError;
+            if (tanksToCreate.length > 0) {
+                const { error: tankError } = await supabase.from('tanks').insert(tanksToCreate);
+                if (tankError) throw tankError;
+            }
 
             toast.success("Farm created successfully!");
             navigate('/owner/dashboard');
@@ -155,7 +239,7 @@ const CreateFarm = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background p-4 sm:p-6 pb-12">
+        <div className="min-h-screen bg-background p-4 sm:p-6 pb-24">
             <div className="max-w-3xl mx-auto space-y-6">
                 <Button variant="ghost" onClick={() => step === 1 ? navigate('/owner/dashboard') : setStep(1)} className="pl-0 hover:bg-transparent">
                     <ArrowLeft className="w-5 h-5 mr-1" /> {step === 1 ? 'Back to Dashboard' : 'Back to General Info'}
@@ -164,183 +248,238 @@ const CreateFarm = () => {
                 <div className="flex justify-between items-end">
                     <div>
                         <h1 className="text-2xl font-bold">Create New Farm</h1>
-                        <p className="text-muted-foreground">
-                            {step === 1 ? 'Step 1: General Structure' : 'Step 2: Configure Individual Tanks'}
+                        <p className="text-muted-foreground text-sm">
+                            {step === 1 ? 'Step 1: Farm Structure' : 'Step 2: Tank Configuration'}
                         </p>
                     </div>
-                    <div className="flex gap-1">
-                        <div className={`w-2 h-2 rounded-full ${step === 1 ? 'bg-primary' : 'bg-muted'}`} />
-                        <div className={`w-2 h-2 rounded-full ${step === 2 ? 'bg-primary' : 'bg-muted'}`} />
+                    <div className="flex gap-1.5 pb-1">
+                        <div className={`w-2.5 h-2.5 rounded-full transition-colors ${step === 1 ? 'bg-primary' : 'bg-primary/20'}`} />
+                        <div className={`w-2.5 h-2.5 rounded-full transition-colors ${step === 2 ? 'bg-primary' : 'bg-primary/20'}`} />
                     </div>
                 </div>
 
                 {step === 1 ? (
-                    <Card className="rounded-2xl border-none shadow-sm overflow-hidden">
+                    <Card className="rounded-2xl border shadow-sm overflow-hidden">
                         <CardContent className="p-6 space-y-6">
                             <div className="space-y-2">
-                                <Label htmlFor="farmName">Farm Name</Label>
+                                <Label htmlFor="farmName" className="font-semibold">Farm Name</Label>
                                 <Input
                                     id="farmName"
                                     value={farmName}
                                     onChange={(e) => setFarmName(e.target.value)}
                                     placeholder="e.g. Block A"
+                                    className="h-12 text-md"
                                 />
+                                <p className="text-[10px] text-muted-foreground">Give your farm a memorable name</p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label>No. of Sections</Label>
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        value={sectionCount}
-                                        onChange={(e) => setSectionCount(Number(e.target.value))}
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Tanks per Section</Label>
-                                    <Input
-                                        type="number"
-                                        min="1"
-                                        value={tanksPerSection}
-                                        onChange={(e) => setTanksPerSection(Number(e.target.value))}
-                                    />
-                                </div>
+                            <div className="space-y-2">
+                                <Label className="font-semibold">Number of Sections</Label>
+                                <Input
+                                    type="number"
+                                    min="1"
+                                    max="50"
+                                    value={sectionCount}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') {
+                                            setSectionCount('');
+                                        } else {
+                                            const num = parseInt(val);
+                                            if (!isNaN(num) && num >= 1 && num <= 50) {
+                                                setSectionCount(num);
+                                            }
+                                        }
+                                    }}
+                                    className="h-12 text-md w-full"
+                                />
+                                <p className="text-[10px] text-muted-foreground">You can add more sections later</p>
                             </div>
 
-                            <Button onClick={handleContinueToSetup} className="w-full h-12 rounded-xl text-md font-bold shadow-lg shadow-primary/20">
+                            <Button onClick={handleContinueToSetup} className="w-full h-12 rounded-xl text-md font-bold shadow-lg shadow-primary/20 transition-all active:scale-[0.98]">
                                 Continue to Tank Setup <ArrowRight className="ml-2 w-5 h-5" />
                             </Button>
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="space-y-6">
+                    <div className="space-y-8 animate-in fade-in duration-500">
                         {sections.map((section, sIdx) => (
                             <div key={sIdx} className="space-y-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                        <Layers className="w-4 h-4" />
+                                <div className="glass-card p-4 rounded-2xl border-l-4 border-l-primary flex items-center justify-between shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                            <Layers className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Input
+                                                className="h-6 font-bold border-none bg-transparent p-0 text-lg focus-visible:ring-0 w-32"
+                                                value={section.name}
+                                                onChange={(e) => {
+                                                    const newSections = [...sections];
+                                                    newSections[sIdx].name = e.target.value;
+                                                    setSections(newSections);
+                                                }}
+                                            />
+                                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Configure Section</p>
+                                        </div>
                                     </div>
-                                    <h2 className="text-lg font-bold">{section.name}</h2>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => addTank(sIdx)}
+                                            className="h-9 px-3 border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground font-bold text-xs rounded-xl transition-all"
+                                        >
+                                            <Plus className="w-4 h-4 mr-1" /> Add Tank
+                                        </Button>
+                                        <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-xl border border-muted">
+                                            <TankCountInput
+                                                count={section.tanks.length}
+                                                onChange={(val) => updateTankCount(sIdx, val)}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div className="grid gap-4">
-                                    {section.tanks.map((tank, tIdx) => (
-                                        <Card key={tIdx} className="rounded-2xl border-none shadow-md overflow-hidden bg-card/50">
-                                            <CardContent className="p-4 space-y-3">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <Input
-                                                        className="font-bold border-none bg-transparent p-0 text-md focus-visible:ring-0 w-1/2"
-                                                        value={tank.name}
-                                                        onChange={(e) => updateTank(sIdx, tIdx, { name: e.target.value })}
-                                                    />
-                                                    <div className="flex gap-2">
-                                                        <span className="text-[10px] bg-muted px-2 py-0.5 rounded-full font-bold text-muted-foreground uppercase">
-                                                            T-{sIdx + 1}.{tIdx + 1}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">Type</Label>
-                                                        <Select value={tank.type} onValueChange={(val: any) => updateTank(sIdx, tIdx, { type: val })}>
-                                                            <SelectTrigger className="h-9 text-xs">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="FRP">FRP</SelectItem>
-                                                                <SelectItem value="CONCRETE">Concrete</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">Shape</Label>
-                                                        <Select value={tank.shape} onValueChange={(val: any) => updateTank(sIdx, tIdx, { shape: val })}>
-                                                            <SelectTrigger className="h-9 text-xs">
-                                                                <SelectValue />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="CIRCLE">Circular</SelectItem>
-                                                                <SelectItem value="RECTANGLE">Rectangular</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                </div>
-
-                                                <div className={`grid ${tank.shape === 'CIRCLE' ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase text-muted-foreground font-bold">Height (m)</Label>
-                                                        <Input
-                                                            type="number"
-                                                            className="h-9 text-xs"
-                                                            value={tank.height || ''}
-                                                            onChange={(e) => updateTank(sIdx, tIdx, { height: Number(e.target.value) })}
-                                                        />
-                                                    </div>
-                                                    {tank.shape === 'CIRCLE' ? (
-                                                        <div className="space-y-1.5">
-                                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold">Radius (m)</Label>
+                                <div className="grid gap-4 pl-4 border-l-2 border-dashed border-muted ml-5">
+                                    {section.tanks.length === 0 ? (
+                                        <div className="py-8 bg-muted/20 border border-dashed rounded-2xl text-center">
+                                            <p className="text-xs text-muted-foreground font-medium italic">No tanks added to this section yet.</p>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => addTank(sIdx)}
+                                                className="mt-2 text-primary hover:bg-primary/10 font-bold"
+                                            >
+                                                Click to add tank
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        section.tanks.map((tank, tIdx) => (
+                                            <Card key={tIdx} className="rounded-2xl border shadow-sm overflow-hidden bg-card/40 transition-all hover:bg-card">
+                                                <CardContent className="p-4 space-y-4">
+                                                    <div className="flex justify-between items-center bg-muted/20 -mx-4 -mt-4 px-4 py-3 border-b mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded-md bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary">
+                                                                {tIdx + 1}
+                                                            </div>
                                                             <Input
-                                                                type="number"
-                                                                className="h-9 text-xs"
-                                                                value={tank.radius || ''}
-                                                                onChange={(e) => updateTank(sIdx, tIdx, { radius: Number(e.target.value) })}
+                                                                className="font-bold border-none bg-transparent p-0 text-sm focus-visible:ring-0 h-auto"
+                                                                value={tank.name}
+                                                                onChange={(e) => updateTank(sIdx, tIdx, { name: e.target.value })}
                                                             />
                                                         </div>
-                                                    ) : (
-                                                        <>
-                                                            <div className="space-y-1.5">
-                                                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">Length (m)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    className="h-9 text-xs"
-                                                                    value={tank.length || ''}
-                                                                    onChange={(e) => updateTank(sIdx, tIdx, { length: Number(e.target.value) })}
-                                                                />
-                                                            </div>
-                                                            <div className="space-y-1.5">
-                                                                <Label className="text-[10px] uppercase text-muted-foreground font-bold">Width (m)</Label>
-                                                                <Input
-                                                                    type="number"
-                                                                    className="h-9 text-xs"
-                                                                    value={tank.width || ''}
-                                                                    onChange={(e) => updateTank(sIdx, tIdx, { width: Number(e.target.value) })}
-                                                                />
-                                                            </div>
-                                                        </>
-                                                    )}
-                                                </div>
+                                                        <span className="text-[9px] bg-muted px-2 py-0.5 rounded-md font-bold text-muted-foreground uppercase tracking-wider">
+                                                            {section.name.charAt(0)}{sIdx + 1}.{tIdx + 1}
+                                                        </span>
+                                                    </div>
 
-                                                <div className={`pt-1 grid ${tank.shape === 'CIRCLE' ? 'grid-cols-2' : 'grid-cols-3'} gap-3 border-t border-dashed mt-1`}>
-                                                    <div className="">
-                                                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Volume</p>
-                                                        <p className="font-bold text-primary text-sm">{tank.volume.toLocaleString()} L</p>
+                                                    <div className="grid grid-cols-1 pt-1">
+                                                        <div className="space-y-1.5 text-center sm:text-left">
+                                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold tracking-tight">Material Type</Label>
+                                                            <Select value={tank.type} onValueChange={(val: any) => updateTank(sIdx, tIdx, { type: val })}>
+                                                                <SelectTrigger className="h-10 text-xs rounded-xl bg-background border-muted shadow-none">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="FRP">FRP</SelectItem>
+                                                                    <SelectItem value="CONCRETE">Concrete</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
                                                     </div>
-                                                    <div className="">
-                                                        <p className="text-[10px] text-muted-foreground font-bold uppercase">Area</p>
-                                                        <p className="font-bold text-primary text-sm">{tank.area.toLocaleString()} m²</p>
+
+                                                    <div className="grid grid-cols-3 gap-3">
+                                                        <div className="space-y-1.5">
+                                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold">Height (m)</Label>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.1"
+                                                                className="h-10 text-xs rounded-xl shadow-none"
+                                                                value={tank.height || ''}
+                                                                onChange={(e) => {
+                                                                    const val = parseFloat(e.target.value);
+                                                                    if (e.target.value === '' || val >= 0) {
+                                                                        updateTank(sIdx, tIdx, { height: e.target.value === '' ? 0 : val });
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold">Length (m)</Label>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.1"
+                                                                className="h-10 text-xs rounded-xl shadow-none"
+                                                                value={tank.length || ''}
+                                                                onChange={(e) => {
+                                                                    const val = parseFloat(e.target.value);
+                                                                    if (e.target.value === '' || val >= 0) {
+                                                                        updateTank(sIdx, tIdx, { length: e.target.value === '' ? 0 : val });
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <Label className="text-[10px] uppercase text-muted-foreground font-bold">Width (m)</Label>
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.1"
+                                                                className="h-10 text-xs rounded-xl shadow-none"
+                                                                value={tank.width || ''}
+                                                                onChange={(e) => {
+                                                                    const val = parseFloat(e.target.value);
+                                                                    if (e.target.value === '' || val >= 0) {
+                                                                        updateTank(sIdx, tIdx, { width: e.target.value === '' ? 0 : val });
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
+
+                                                    <div className="pt-2 grid grid-cols-2 gap-3 border-t border-dashed">
+                                                        <div className="bg-primary/5 p-2 rounded-xl border border-primary/10">
+                                                            <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Total Volume</p>
+                                                            <p className="font-extrabold text-primary text-md">{tank.volume.toLocaleString()} <span className="text-[10px] font-bold">LITRES</span></p>
+                                                        </div>
+                                                        <div className="bg-primary/5 p-2 rounded-xl border border-primary/10">
+                                                            <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">Surface Area</p>
+                                                            <p className="font-extrabold text-primary text-md">{tank.area.toLocaleString()} <span className="text-[10px] font-bold">m²</span></p>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         ))}
 
-                        {/* Large spacer to ensure the last card can scroll above the fixed button */}
-                        <div className="h-4" />
+                        <div className="flex justify-center pt-4">
+                            <Button
+                                variant="outline"
+                                onClick={addSection}
+                                className="border-dashed border-2 py-8 w-full rounded-2xl text-muted-foreground hover:text-primary hover:border-primary transition-all flex flex-col gap-1"
+                            >
+                                <Plus className="w-6 h-6" />
+                                <span className="font-bold text-sm uppercase tracking-wider">Add New Section</span>
+                            </Button>
+                        </div>
 
-                        <div className="fixed bottom-0 left-0 right-0 p-3 bg-background/80 backdrop-blur-md border-t">
+                        <div className="h-12" />
+
+                        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t z-50 shadow-2xl">
                             <Button
                                 onClick={handleSubmit}
                                 disabled={loading}
-                                className="w-full max-w-lg mx-auto block h-12 rounded-xl text-md font-bold shadow-xl shadow-primary/20"
+                                className="w-full max-w-lg mx-auto block h-14 rounded-2xl text-md font-bold shadow-xl shadow-primary/25 transition-all active:scale-[0.98]"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : (
-                                    <div className="flex items-center justify-center gap-2">
-                                        <Check className="w-5 h-5" /> Finish & Create Farm
+                                {loading ? <Loader2 className="w-6 h-6 animate-spin mx-auto" /> : (
+                                    <div className="flex items-center justify-center gap-2 uppercase tracking-wide">
+                                        <Check className="w-6 h-6" /> Finalize & Create Farm
                                     </div>
                                 )}
                             </Button>

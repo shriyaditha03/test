@@ -62,43 +62,43 @@ const AddUser = () => {
             setLoading(true);
 
             // 1. Create Auth User using a secondary client (to not log out current owner)
-            // Note: We need the URL and Anon Key from env
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
             const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-            // Create a temporary client just for this signup with persistence disabled
-            // to prevent overwriting the current owner's session
+            if (!supabaseUrl || !supabaseAnonKey) {
+                throw new Error("Supabase URL or Anon Key is missing in environment variables.");
+            }
+
             const { createClient } = await import('@supabase/supabase-js');
             const tempClient = createClient(supabaseUrl, supabaseAnonKey, {
-                auth: {
-                    persistSession: false,
-                    autoRefreshToken: false,
-                    detectSessionInUrl: false
-                }
+                auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
             });
 
-            const emailToUse = `${formData.username.toLowerCase().replace(/\s+/g, '')}@shrimpit.local`;
+            const emailToUse = `${formData.username.toLowerCase().trim().replace(/\s+/g, '')}@shrimphatchery.com`;
 
             const { data: authData, error: authError } = await tempClient.auth.signUp({
                 email: emailToUse,
                 password: formData.password,
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error("Auth user creation failed");
+            if (authError) {
+                console.error("Auth Signup Error:", authError);
+                throw authError;
+            }
+            if (!authData.user) throw new Error("User creation failed in Supabase Auth.");
 
             // 2. Activate profile via RPC
-            const { data: wasClaimed, error: claimError } = await supabase
-                .rpc('activate_user_profile', {
-                    username_input: formData.username.trim(),
-                    user_id_input: authData.user.id,
-                    email_input: emailToUse
-                });
+            const { error: claimError } = await supabase.rpc('activate_user_profile', {
+                username_input: formData.username.trim(),
+                user_id_input: authData.user.id,
+                email_input: emailToUse
+            });
 
-            // If the profile doesn't exist yet, we create it.
-            // In the previous logic, the profile might have been pre-created.
-            // Let's ensure it exists with the right role.
+            if (claimError) {
+                console.error("Profile claim error:", claimError);
+            }
 
+            // 3. Ensure profile exists and has correct info (Role, Hatchery, etc.)
             const { data: existingProfile } = await supabase
                 .from('profiles')
                 .select('id')
@@ -114,7 +114,7 @@ const AddUser = () => {
                         auth_user_id: authData.user.id,
                         email: emailToUse,
                         role: 'worker',
-                        hatchery_id: user.hatchery_id
+                        hatchery_id: user?.hatchery_id
                     })
                     .eq('username', formData.username.trim());
 
@@ -126,7 +126,7 @@ const AddUser = () => {
                     .insert([{
                         username: formData.username.trim(),
                         role: 'worker',
-                        hatchery_id: user.hatchery_id,
+                        hatchery_id: user?.hatchery_id,
                         full_name: formData.username,
                         auth_user_id: authData.user.id,
                         email: emailToUse
@@ -138,7 +138,7 @@ const AddUser = () => {
                 targetProfileId = newProfile.id;
             }
 
-            // 3. Assign Farm Access (Sync selection)
+            // 4. Assign Farm Access (Sync selection)
             // First, clear existing access if any (prevents duplicate key errors)
             await supabase
                 .from('farm_access')

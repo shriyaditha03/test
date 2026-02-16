@@ -205,9 +205,13 @@ const EditFarm = () => {
             const tanksToDelete = dbTanks?.filter(t => !activeTankIds.includes(t.id)).map(t => t.id) || [];
 
             if (tanksToDelete.length > 0) {
+                // Delete associated logs first
+                await supabase.from('activity_logs').delete().in('tank_id', tanksToDelete);
                 await supabase.from('tanks').delete().in('id', tanksToDelete);
             }
             if (sectionsToDelete.length > 0) {
+                // Delete associated logs first
+                await supabase.from('activity_logs').delete().in('section_id', sectionsToDelete);
                 await supabase.from('sections').delete().in('id', sectionsToDelete);
             }
 
