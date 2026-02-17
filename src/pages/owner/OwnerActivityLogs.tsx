@@ -13,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, Loader2, Calendar, Info, Filter, BarChart2, Waves, Beaker, Layers } from 'lucide-react';
+import { ArrowLeft, Loader2, Calendar, Info, Filter, BarChart2, Waves, Beaker, Layers, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate, toLocal, getTodayStr, getDateRangeUTC } from '@/lib/date-utils';
 import { subDays, startOfDay, endOfDay, format } from 'date-fns';
@@ -457,6 +457,7 @@ const OwnerActivityLogs = () => {
                                         <TableHead className="font-bold">Tank</TableHead>
                                         <TableHead className="font-bold">Activity Details</TableHead>
                                         <TableHead className="font-bold">Comments</TableHead>
+                                        <TableHead className="font-bold">Photo</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -490,6 +491,24 @@ const OwnerActivityLogs = () => {
                                                 <span className="text-xs text-muted-foreground italic">
                                                     {log.data?.comments || '-'}
                                                 </span>
+                                            </TableCell>
+                                            <TableCell>
+                                                {log.data?.photo_url ? (
+                                                    <a
+                                                        href={log.data.photo_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="block w-10 h-10 rounded-lg overflow-hidden border border-border hover:border-primary transition-colors"
+                                                    >
+                                                        <img
+                                                            src={log.data.photo_url}
+                                                            alt="Activity"
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-muted-foreground/30"><Camera className="w-4 h-4" /></span>
+                                                )}
                                             </TableCell>
                                         </TableRow>
                                     ))}

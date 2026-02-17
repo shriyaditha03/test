@@ -2,15 +2,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import RatingScale from '@/components/RatingScale';
+import ImageUpload from '@/components/ImageUpload';
 
 interface StockingFormProps {
   data: any;
   onDataChange: (val: any) => void;
   comments: string;
   onCommentsChange: (val: string) => void;
+  photoUrl: string;
+  onPhotoUrlChange: (val: string) => void;
 }
 
-const StockingForm = ({ data, onDataChange, comments, onCommentsChange }: StockingFormProps) => {
+const StockingForm = ({
+  data,
+  onDataChange,
+  comments,
+  onCommentsChange,
+  photoUrl,
+  onPhotoUrlChange
+}: StockingFormProps) => {
   const handleChange = (field: string, value: any) => {
     onDataChange({ ...data, [field]: value });
   };
@@ -91,6 +101,10 @@ const StockingForm = ({ data, onDataChange, comments, onCommentsChange }: Stocki
       />
 
 
+
+      <div className="space-y-1.5 pt-2 border-t border-dashed">
+        <ImageUpload value={photoUrl} onUpload={onPhotoUrlChange} />
+      </div>
 
       <div className="space-y-1.5">
         <Label className="text-xs">Comments</Label>

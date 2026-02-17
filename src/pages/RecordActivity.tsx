@@ -11,6 +11,7 @@ import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import RatingScale from '@/components/RatingScale';
 import StockingForm from '@/components/StockingForm';
 import ObservationForm from '@/components/ObservationForm';
+import ImageUpload from '@/components/ImageUpload';
 import { toast } from 'sonner';
 import { formatDate, getNowLocal, getTodayStr } from '@/lib/date-utils';
 import { useActivities } from '@/hooks/useActivities';
@@ -179,6 +180,7 @@ const RecordActivity = () => {
         setSelectedSectionId(data.section_id || '');
         setSelectedFarmId(data.farm_id || '');
         setComments(data.data.comments || '');
+        setPhotoUrl(data.data.photo_url || '');
 
         // Pre-fill activity specific fields
         const actType = data.activity_type;
@@ -255,16 +257,17 @@ const RecordActivity = () => {
   const [observationData, setObservationData] = useState<any>({});
 
   const [comments, setComments] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
 
   const buildData = (): Record<string, any> => {
-    const baseData = { date, time, ampm, comments };
+    const baseData = { date, time, ampm, comments, photo_url: photoUrl };
     switch (activity) {
       case 'Feed': return { ...baseData, feedType, feedQty, feedUnit };
       case 'Treatment': return { ...baseData, treatmentType, treatmentDosage, treatmentUnit };
       case 'Water Quality': return { ...baseData, waterData };
       case 'Animal Quality': return { ...baseData, animalSize, animalRatings, hasDiseaseIdentified, diseaseSymptoms, additionalObservations };
-      case 'Stocking': return { ...baseData, ...stockingData };
-      case 'Observation': return { ...baseData, ...observationData };
+      case 'Stocking': return { ...baseData, ...stockingData, photo_url: photoUrl };
+      case 'Observation': return { ...baseData, ...observationData, photo_url: photoUrl };
       default: return baseData;
     }
   };
@@ -494,6 +497,9 @@ const RecordActivity = () => {
                 </Select>
               </div>
             </div>
+            <div className="space-y-1.5 pt-2 border-t border-dashed">
+              <ImageUpload value={photoUrl} onUpload={setPhotoUrl} />
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Comments</Label>
               <Textarea value={comments} onChange={e => setComments(e.target.value)} placeholder="Add notes..." rows={3} />
@@ -538,6 +544,9 @@ const RecordActivity = () => {
                 </Select>
               </div>
             </div>
+            <div className="space-y-1.5 pt-2 border-t border-dashed">
+              <ImageUpload value={photoUrl} onUpload={setPhotoUrl} />
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Comments</Label>
               <Textarea value={comments} onChange={e => setComments(e.target.value)} placeholder="Add notes..." rows={3} />
@@ -570,6 +579,9 @@ const RecordActivity = () => {
                   </div>
                 );
               })}
+            </div>
+            <div className="space-y-1.5 pt-2 border-t border-dashed">
+              <ImageUpload value={photoUrl} onUpload={setPhotoUrl} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Comments</Label>
@@ -639,6 +651,9 @@ const RecordActivity = () => {
               <Label className="text-xs">Additional Observations</Label>
               <Input value={additionalObservations} onChange={e => setAdditionalObservations(e.target.value)} placeholder="Any other observations" className="h-11" />
             </div>
+            <div className="space-y-1.5 pt-2 border-t border-dashed">
+              <ImageUpload value={photoUrl} onUpload={setPhotoUrl} />
+            </div>
 
           </div>
         )}
@@ -649,6 +664,8 @@ const RecordActivity = () => {
             onDataChange={setStockingData}
             comments={comments}
             onCommentsChange={setComments}
+            photoUrl={photoUrl}
+            onPhotoUrlChange={setPhotoUrl}
           />
         )}
 
@@ -658,6 +675,8 @@ const RecordActivity = () => {
             onDataChange={setObservationData}
             comments={comments}
             onCommentsChange={setComments}
+            photoUrl={photoUrl}
+            onPhotoUrlChange={setPhotoUrl}
           />
         )}
 

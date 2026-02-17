@@ -27,6 +27,21 @@ interface SectionConfig {
     tanks: TankConfig[];
 }
 
+interface AddressConfig {
+    plotNumber: string;
+    areaName: string;
+    street: string;
+    city: string;
+    state: string;
+    pincode: string;
+    fullAddress: string;
+    latitude: number | null;
+    longitude: number | null;
+    plotArea: number;
+    plotLength: number;
+    plotWidth: number;
+}
+
 const TankCountInput = ({ count, onChange }: { count: number, onChange: (val: number) => void }) => {
     const [val, setVal] = useState<string | number>(count);
 
@@ -492,3 +507,4 @@ const CreateFarm = () => {
 };
 
 export default CreateFarm;
+

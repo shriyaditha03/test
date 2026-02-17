@@ -49,6 +49,14 @@ create table public.farms (
   id uuid default uuid_generate_v4() primary key,
   hatchery_id uuid references public.hatcheries(id) on delete cascade not null,
   name text not null,
+  address text,
+  plot_number text,
+  area_name text,
+  latitude double precision,
+  longitude double precision,
+  plot_area_sqm double precision,
+  plot_length_m double precision,
+  plot_width_m double precision,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
